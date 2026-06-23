@@ -28,12 +28,12 @@ async def main():
     scheduler.start()
     logger.info("Scheduler started")
 
-    web_app = create_web_app(app.bot)
+    web_app = create_web_app()
     runner = web.AppRunner(web_app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", WEBHOOK_PORT)
     await site.start()
-    logger.info("Webhook server listening on port %d", WEBHOOK_PORT)
+    logger.info("Health server listening on port %d", WEBHOOK_PORT)
 
     async with app:
         await app.start()
