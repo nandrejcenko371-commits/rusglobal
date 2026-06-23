@@ -32,8 +32,8 @@ ZOOM_LINK = os.getenv("ZOOM_LINK", "https://zoom.us/j/XXXXXXXXXX")
 EDVIBE_COURSE_LINK = os.getenv("EDVIBE_COURSE_LINK", "https://edvibe.com/my-courses")
 TRAINER_URL = "https://rusglobalacademy.in/dictionary"
 
-# Webhook
-WEBHOOK_PORT = int(os.getenv("WEBHOOK_PORT", "8080"))
+# Webhook — Railway injects PORT; fall back to WEBHOOK_PORT, then 8080
+WEBHOOK_PORT = int(os.getenv("PORT", os.getenv("WEBHOOK_PORT", "8080")))
 
 # Database
 DB_PATH = os.getenv("DB_PATH", "rusglobal.db")
