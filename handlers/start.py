@@ -19,8 +19,9 @@ async def _check_subscription(bot, user_id: int) -> bool:
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         return member.status not in ("left", "kicked", "banned")
-    except Exception:
-        return False
+    except Exception as e:
+        logger.warning("get_chat_member failed (is bot admin of %s?): %s", CHANNEL_ID, e)
+        return True
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
