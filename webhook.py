@@ -90,8 +90,13 @@ async def robokassa_result(request: web.Request) -> web.Response:
         return web.Response(text="error", status=500)
 
 
+async def healthcheck(request: web.Request) -> web.Response:
+    return web.Response(text="ok")
+
+
 def create_web_app(bot: Bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
+    app.router.add_get("/", healthcheck)
     app.router.add_post("/robokassa/result", robokassa_result)
     return app
