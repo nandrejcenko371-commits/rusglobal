@@ -9,14 +9,20 @@ async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                user_id     INTEGER PRIMARY KEY,
-                username    TEXT,
-                first_name  TEXT,
-                last_name   TEXT,
-                started_at  TEXT NOT NULL,
-                is_active   INTEGER DEFAULT 1
+                user_id       INTEGER PRIMARY KEY,
+                username      TEXT,
+                first_name    TEXT,
+                last_name     TEXT,
+                started_at    TEXT NOT NULL,
+                subscribed_at TEXT,
+                is_active     INTEGER DEFAULT 1
             )
         """)
+        # Migration for existing databases
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN subscribed_at TEXT")
+        except Exception:
+            pass
         await db.execute("""
             CREATE TABLE IF NOT EXISTS warmup_log (
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +57,12 @@ async def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(user_id)
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS broadcast_log (
+                name     TEXT PRIMARY KEY,
+                sent_at  TEXT NOT NULL
+            )
+        """)
         await db.commit()
 
 
@@ -75,6 +87,15 @@ async def get_user(user_id: int):
         async with db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)) as cur:
             row = await cur.fetchone()
             return dict(row) if row else None
+
+
+async def set_subscribed_at(user_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET subscribed_at = ? WHERE user_id = ? AND subscribed_at IS NULL",
+            (_now(), user_id),
+        )
+        await db.commit()
 
 
 async def get_all_active_users():
@@ -193,3 +214,29 @@ async def mark_marathon_reminder_sent(user_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE payments SET marathon_reminder_sent=1 WHERE user_id=?", (user_id,))
         await db.commit()
+
+
+# ── Broadcasts ────────────────────────────────────────────────────────────
+
+async def is_broadcast_sent(name: str) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT 1 FROM broadcast_log WHERE name = ?", (name,)) as cur:
+            return await cur.fetchone() is not None
+
+
+async def mark_broadcast_sent(name: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO broadcast_log (name, sent_at) VALUES (?, ?)",
+            (name, _now()),
+        )
+        await db.commit()
+
+
+async def get_paid_users() -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM payments WHERE status IN ('paid', 'paid_pending')"
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
