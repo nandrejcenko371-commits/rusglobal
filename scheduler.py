@@ -39,9 +39,9 @@ async def job_warmup(bot: Bot):
     now = datetime.now(timezone.utc)
 
     for user in users:
-        sub_at = user.get("subscribed_at")
+        sub_at = user.get("subscribed_at") or user.get("started_at")
         if not sub_at:
-            continue  # skip users who haven't verified subscription yet
+            continue
         subscribed = datetime.fromisoformat(sub_at)
         days_elapsed = (now.date() - subscribed.date()).days
 

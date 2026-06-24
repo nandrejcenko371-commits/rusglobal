@@ -23,6 +23,10 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await db.add_user(user.id, user.username or "", user.first_name or "", user.last_name or "")
 
+    existing = await db.get_user(user.id)
+    if existing and existing.get("subscribed_at"):
+        return  # trainer already sent, do nothing
+
     subscribed = await _check_subscription(context.bot, user.id)
     if not subscribed:
         keyboard = InlineKeyboardMarkup([
@@ -39,6 +43,10 @@ async def cb_check_sub(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user = query.from_user
+
+    existing = await db.get_user(user.id)
+    if existing and existing.get("subscribed_at"):
+        return  # already got the trainer (double-tap guard)
 
     subscribed = await _check_subscription(context.bot, user.id)
     if not subscribed:
