@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 import database as db
 from config import CHANNEL_ID
 from messages import WELCOME_NOT_SUBSCRIBED, NOT_SUBSCRIBED_AGAIN, TRAINER_MSG
+from scheduler import send_missed_todays_broadcasts
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await db.set_subscribed_at(user.id)
         await update.message.reply_text(TRAINER_MSG)
+        await send_missed_todays_broadcasts(context.bot, user.id)
 
 
 async def cb_check_sub(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -47,6 +49,7 @@ async def cb_check_sub(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await db.set_subscribed_at(user.id)
         await query.edit_message_text(TRAINER_MSG)
+        await send_missed_todays_broadcasts(context.bot, user.id)
 
 
 def build_start_handler() -> CommandHandler:

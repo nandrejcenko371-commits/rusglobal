@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
@@ -72,6 +72,26 @@ async def job_broadcast(bot: Bot, name: str, text: str, paid_only: bool):
 
     await db.mark_broadcast_sent(name)
     logger.info("Broadcast '%s' sent to %d users", name, len(user_ids))
+
+
+_IST = timedelta(hours=5, minutes=30)
+
+
+async def send_missed_todays_broadcasts(bot: Bot, user_id: int):
+    """Send today's non-paid broadcasts that have already fired to a newly subscribed user."""
+    now = datetime.now(timezone.utc)
+    today_ist = (now + _IST).date()
+
+    for name, run_date, text, paid_only in _BROADCASTS:
+        if paid_only:
+            continue
+        if (run_date + _IST).date() != today_ist:
+            continue
+        if now < run_date:
+            continue
+        if not await db.is_broadcast_sent(name):
+            continue
+        await _send_safe(bot, user_id, text)
 
 
 def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
