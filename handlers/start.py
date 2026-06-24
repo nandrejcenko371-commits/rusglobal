@@ -25,7 +25,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     existing = await db.get_user(user.id)
     if existing and existing.get("subscribed_at"):
-        return  # trainer already sent, do nothing
+        # already subscribed — just resend the trainer, don't block
+        await update.message.reply_text(TRAINER_MSG)
+        return
 
     subscribed = await _check_subscription(context.bot, user.id)
     if not subscribed:
